@@ -16,6 +16,7 @@ module TooDone
       :desc => "The todo list which the task will be filed under."
     option :date, :aliases => :d,
       :desc => "A Due Date in YYYY-MM-DD format."
+
     def add(task)
       list = current_user.lists.find_or_create_by(title: options[:list])
       if options[:date] != nil
@@ -29,12 +30,16 @@ module TooDone
     desc "edit", "Edit a task from a todo list."
     option :list, :aliases => :l, :default => "Chores",
       :desc => "The todo list whose tasks will be edited."
+    
     def edit
-      current_list = current_user.lists.find_by(title: options[:list])
+      current_list = current_user.lists.where(title: options[:list]).take
       tasks = current_list.tasks
+      binding.pry
+
       if current_list && tasks.exists?
         puts "Current List: #{current_list.title}"
         display_tasks(tasks)
+        binding.pry
         puts "Which task would you like to edit?"
         input = STDIN.gets.chomp
         old_task = tasks.find_by(description: input)
@@ -71,7 +76,8 @@ module TooDone
         display_tasks(tasks)
         puts "\nWould you like to mark another task complete? (Y/N)"
         input = STDIN.gets.chomp.upcase
-        until input == "N"
+        while 
+          tasks.any? { |task| task.state == false } && input != "N"
           puts "Current Tasks: "
           display_tasks(tasks)
           puts "\nWhich task would you like to mark as complete?"
@@ -81,19 +87,13 @@ module TooDone
           finished_task.done
           current_list = current_user.lists.find_by(title: options[:list])
           tasks = current_list.tasks
-          if tasks.any? do |task|
-            task.state == false
-            puts "Would you like to mark another task as complete? (Y/N)"
-            input == STDIN.gets.chomp.upcase
-            end
-          else
-            exit
-          end
+          puts "\nWould you like to mark another task as complete? (Y/N)"
+          input == STDIN.gets.chomp.upcase
         end
         exit
       else
         exit
-      end
+        end
     end
 
     desc "show", "Show the tasks on a todo list in reverse order."
@@ -104,8 +104,8 @@ module TooDone
     option :sort, :aliases => :s, :enum => ["history", "overdue"],
       :desc => "Sorting by 'history' (chronological) or 'overdue'.
       \t\t\t\t\tLimits results to those with a due date."
+    
     def show
-
       list = current_user.lists.find_or_create_by(title: options[:list])
       tasks = list.tasks
       
